@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Sequoia AI Server", version="0.4.0")
+app = FastAPI(title="Sequoia AI Server", version="0.4.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -246,33 +246,50 @@ async def gemini_generate(contents: list, system_text: str, max_tokens: int = 14
     )
 
 
-async def extract_and_save_memory(user_message: str) -> bool:
+async def save_everything_memory(user_message: str) -> bool:
+    """
+    Save every user message as long-term memory automatically.
+    The user never needs to say "remember this".
+    """
+
+    # First: guaranteed raw memory copy.
+    raw_saved = await db_insert(
+        "memories",
+        {
+            "user_id": OWNER_ID,
+            "category": "conversation",
+            "content": user_message[:5000],
+            "importance": 5,
+            "confidence": 1.0,
+            "metadata": {
+                "source": "all_memory_v0.4.1",
+                "kind": "raw_user_message",
+            },
+        },
+    )
+
+    # Second: try to create a cleaner structured memory as an extra layer.
+    # If this fails, the raw message is still safely stored.
     prompt = f"""
-حلل رسالة المستخدم التالية وحدها:
+حوّل رسالة المستخدم التالية إلى ذاكرة قصيرة ومنظمة للمساعد الشخصي:
 {user_message}
 
-استخرج فقط معلومة طويلة الأمد تستحق أن يتذكرها مساعد شخصي مستقبلاً:
-- تفضيل ثابت
-- معلومة شخصية صريحة
-- قرار مشروع
-- هدف مستمر
-- اسم/علاقة مهمة
-- قاعدة عمل يكرر المستخدم الاعتماد عليها
+أعد JSON صالح فقط بهذا الشكل:
+{{
+  "category":"general",
+  "content":"ملخص دقيق للمعلومة أو الحدث أو الطلب أو الفكرة",
+  "importance":5,
+  "confidence":1.0
+}}
 
-لا تحفظ الأسئلة العابرة أو الكلام المؤقت.
-أعد JSON فقط بهذا الشكل:
-{{"save":true,"category":"general","content":"...","importance":5,"confidence":1.0}}
-أو:
-{{"save":false}}
-
-importance رقم من 1 إلى 10.
-confidence رقم من 0 إلى 1.
+لا تُرجع save:false. يجب دائماً إنتاج ذاكرة.
+لا تضف معلومات غير موجودة في الرسالة.
 """
 
     try:
         raw, _, _ = await gemini_generate(
             [{"role": "user", "parts": [{"text": prompt}]}],
-            "أنت وحدة استخراج ذاكرة. أعد JSON صالح فقط دون شرح.",
+            "أنت وحدة تنظيم ذاكرة. أعد JSON صالح فقط دون شرح.",
             max_tokens=300,
         )
 
@@ -283,39 +300,38 @@ confidence رقم من 0 إلى 1.
                 raw = raw[4:].strip()
 
         obj = json.loads(raw)
-        if not obj.get("save"):
-            return False
-
         content = str(obj.get("content", "")).strip()
-        if not content:
-            return False
 
-        importance = max(1, min(10, int(obj.get("importance", 5))))
-        confidence = max(0.0, min(1.0, float(obj.get("confidence", 1.0))))
+        if content and content != user_message.strip():
+            importance = max(1, min(10, int(obj.get("importance", 5))))
+            confidence = max(0.0, min(1.0, float(obj.get("confidence", 1.0))))
 
-        return await db_insert(
-            "memories",
-            {
-                "user_id": OWNER_ID,
-                "category": str(obj.get("category", "general"))[:80],
-                "content": content[:5000],
-                "importance": importance,
-                "confidence": confidence,
-                "metadata": {"source": "auto_memory_v0.4"},
-            },
-        )
+            await db_insert(
+                "memories",
+                {
+                    "user_id": OWNER_ID,
+                    "category": str(obj.get("category", "general"))[:80],
+                    "content": content[:5000],
+                    "importance": importance,
+                    "confidence": confidence,
+                    "metadata": {
+                        "source": "all_memory_v0.4.1",
+                        "kind": "organized_memory",
+                    },
+                },
+            )
+
     except Exception as e:
-        # Memory extraction must never prevent the main chat reply.
-        print(f"Memory extraction skipped: {type(e).__name__}: {e}")
-        return False
+        print(f"Memory organization skipped: {type(e).__name__}: {e}")
 
+    return raw_saved
 
 @app.get("/")
 async def root():
     return {
         "name": "Sequoia",
         "status": "online",
-        "version": "0.4.0",
+        "version": "0.4.1",
         "memory": "supabase",
         "primary_model": GEMINI_MODEL,
         "fallback_models": FALLBACK_MODELS,
@@ -343,7 +359,7 @@ async def health():
 
     return {
         "ok": True,
-        "version": "0.4.0",
+        "version": "0.4.1",
         "model": GEMINI_MODEL,
         "fallback_models": FALLBACK_MODELS,
         "gemini_configured": bool(GEMINI_API_KEY),
@@ -423,8 +439,8 @@ async def chat(req: ChatRequest):
         },
     )
 
-    # Do not block the user reply if long-term-memory extraction has trouble.
-    memory_saved = await extract_and_save_memory(req.message)
+    # Every user message is saved automatically as long-term memory.
+    memory_saved = await save_everything_memory(req.message)
 
     return ChatResponse(
         reply=reply,

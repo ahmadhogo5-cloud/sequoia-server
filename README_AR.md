@@ -1,26 +1,15 @@
-# Sequoia Server v0.4
+# Sequoia Server v0.4.1 — All Memory
 
-إضافة الاعتمادية الذكية عند ضغط Gemini:
+- كل رسالة مستخدم تُحفظ في `messages`.
+- كل رسالة مستخدم تُحفظ تلقائياً أيضاً في `memories`.
+- لا يوجد `save:false`.
+- المستخدم لا يحتاج لقول "تذكّر".
+- Gemini ينظم الرسالة إلى ذاكرة مختصرة إضافية عندما يستطيع.
+- إذا فشل التنظيم، تبقى الرسالة الأصلية محفوظة.
+- retry/fallback من v0.4 ما زال موجوداً.
 
-- إعادة المحاولة تلقائياً عند HTTP 429/500/502/503/504.
-- ثلاث محاولات لكل نموذج مع انتظار متدرج.
-- الانتقال تلقائياً إلى نماذج احتياطية إذا بقي النموذج الأساسي مشغولاً.
-- النموذج الأساسي يأتي من GEMINI_MODEL.
-- سلسلة الاحتياط الافتراضية:
-  - gemini-3.6-flash
-  - gemini-3.5-flash-lite
-- يمكن تغييرها من Render بإضافة:
-  GEMINI_FALLBACK_MODELS=gemini-3.6-flash,gemini-3.5-flash-lite
-- استمرارية ذاكرة Supabase من v0.3.
-- فشل استخراج الذاكرة لا يمنع وصول جواب المحادثة للمستخدم.
-
-## Environment variables
-Required:
-- GEMINI_API_KEY
-- GEMINI_MODEL
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- SEQUOIA_OWNER_ID
-
-Optional:
-- GEMINI_FALLBACK_MODELS
+بعد النشر:
+1. افتح `/health` وتأكد من `version: 0.4.1`.
+2. أرسل أي رسالة عادية من التطبيق.
+3. افتح `/memory/status`.
+4. يجب أن تصبح `memory_count_returned` أكبر من صفر.
