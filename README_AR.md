@@ -1,32 +1,17 @@
+# Sequoia Server v0.3 — Persistent Memory
 
-# Sequoia AI Server
+تضيف هذه النسخة:
+- حفظ كل رسائل المستخدم والمساعد في Supabase.
+- استرجاع آخر المحادثات قبل كل رد.
+- استخراج ذكريات طويلة الأمد تلقائياً.
+- فحص الذاكرة عبر `/memory/status`.
 
-السيرفر الأولي لتطبيق Sequoia Android.
+Environment variables المطلوبة:
+- GEMINI_API_KEY
+- GEMINI_MODEL
+- PYTHON_VERSION
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- SEQUOIA_OWNER_ID
 
-## المتغيرات المطلوبة على Render
-- `GEMINI_API_KEY` = مفتاح Gemini API من Google AI Studio
-- `GEMINI_MODEL` = `gemini-3.7-flash`
-
-## أوامر Render
-Build:
-`pip install -r requirements.txt`
-
-Start:
-`uvicorn main:app --host 0.0.0.0 --port $PORT`
-
-## اختبار السيرفر
-- `/health`
-- POST `/chat`
-
-مثال JSON:
-```json
-{
-  "user_id": "user-1",
-  "message": "مرحبا سيكويا",
-  "relationship": "رفيق يومي",
-  "dialect": "شامي",
-  "history": []
-}
-```
-
-ملاحظة: الذاكرة الدائمة والصوت والفيديو ستضاف في المراحل التالية.
+ملاحظة: يمكن وضع Supabase Secret key الحديث داخل المتغير SUPABASE_SERVICE_ROLE_KEY. يبقى المفتاح في Render فقط ولا يوضع داخل APK.

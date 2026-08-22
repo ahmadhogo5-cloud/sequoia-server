@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sequoia-ai
+    name: sequoia-server
     runtime: python
     plan: free
     autoDeploy: true
