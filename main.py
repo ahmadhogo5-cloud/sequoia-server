@@ -1,4 +1,6 @@
 import os
+from facebook_ids_router import router as facebook_ids_router
+app.include_router(facebook_ids_router)
 import asyncio
 from typing import List, Literal, Optional
 
@@ -9,6 +11,7 @@ from pydantic import BaseModel, Field
 
 
 app = FastAPI(
+    app.include_router(facebook_ids_router)
     title="Sequoia AI Server",
     version="0.4.2"
 )
