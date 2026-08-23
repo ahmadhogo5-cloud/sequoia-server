@@ -300,6 +300,7 @@ async def save_everything_memory(user_message: str) -> bool:
     """
 
     # First: guaranteed raw memory copy.
+    async def save_everything_memory(user_message: str) -> bool:
       memory_embedding = None
 
     try:
