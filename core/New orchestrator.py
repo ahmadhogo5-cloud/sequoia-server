@@ -20,7 +20,18 @@ class RegisteredTool:
 
 
 class ToolExecutor:
-
+class StepStatus(str, Enum):
+    THINK = "think"
+    TOOL = "tool"
+    VERIFY = "verify"
+    RESPOND = "respond"
+    REPLAN = "replan"
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    REPLANNING = "replanning"
     def __init__(self):
         self.tools: Dict[str, RegisteredTool] = {}
 
