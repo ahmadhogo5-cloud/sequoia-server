@@ -524,15 +524,15 @@ async def chat(req: ChatRequest):
         },
     )
 
-    stored_messages = await db_recent_messages(limit=30)
+        stored_messages = await db_recent_messages(limit=30)
+
     stored_memories = await db_semantic_memories(
-    req.message,
-    limit=12
-)
+        req.message,
+        limit=12
+    )
 
-if not stored_memories:
-    stored_memories = await db_memories(limit=12)
-
+    if not stored_memories:
+        stored_memories = await db_memories(limit=12)
     memory_text = "لا توجد ذكريات طويلة الأمد محفوظة بعد."
     if stored_memories:
         memory_text = "\n".join(
